@@ -6,7 +6,9 @@ import hyperparams as hp
 import torch as t
 
 def get_spectrograms(fpath):
-    '''Parse the wave file in `fpath` and
+    '''
+    用librosa工具包直接解析出梅尔正谱和幅度谱。合成器采用griffin_Lim合成波形。
+    Parse the wave file in `fpath` and
     Returns normalized melspectrogram and linear spectrogram.
     Args:
       fpath: A string. The full path of a sound file.
@@ -30,21 +32,21 @@ def get_spectrograms(fpath):
                           win_length=hp.win_length)
 
     # magnitude spectrogram
-    mag = np.abs(linear)  # (1+n_fft//2, T)
+    mag = np.abs(linear)  # (1+n_fft//2, T) 绝对值？
 
     # mel spectrogram
     mel_basis = librosa.filters.mel(hp.sr, hp.n_fft, hp.n_mels)  # (n_mels, 1+n_fft//2)
     mel = np.dot(mel_basis, mag)  # (n_mels, t)
 
-    # to decibel
+    # to decibel 取分贝值
     mel = 20 * np.log10(np.maximum(1e-5, mel))
     mag = 20 * np.log10(np.maximum(1e-5, mag))
 
-    # normalize
+    # normalize 归一化
     mel = np.clip((mel - hp.ref_db + hp.max_db) / hp.max_db, 1e-8, 1)
     mag = np.clip((mag - hp.ref_db + hp.max_db) / hp.max_db, 1e-8, 1)
 
-    # Transpose
+    # Transpose 转置
     mel = mel.T.astype(np.float32)  # (T, n_mels)
     mag = mag.T.astype(np.float32)  # (T, 1+n_fft//2)
 
@@ -116,7 +118,7 @@ def get_sinusoid_encoding_table(n_position, d_hid, padding_idx=None):
         return [cal_angle(position, hid_j) for hid_j in range(d_hid)]
 
     sinusoid_table = np.array([get_posi_angle_vec(pos_i) for pos_i in range(n_position)])
-
+    # 此处用等距切片完成了sin，cos值对的矩阵构建
     sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # dim 2i
     sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # dim 2i+1
 

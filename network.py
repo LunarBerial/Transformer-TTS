@@ -13,7 +13,8 @@ class Encoder(nn.Module):
         :param num_hidden: dimension of hidden
         """
         super(Encoder, self).__init__()
-        self.alpha = nn.Parameter(t.ones(1))
+        self.alpha = nn.Parameter(t.ones(1)) #声明alpha为一个可训练参数
+        # 此处对输入的pos_text先做三角变换而后embed
         self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(1024, num_hidden, padding_idx=0),
                                                     freeze=True)
         self.pos_dropout = nn.Dropout(p=0.1)
@@ -25,9 +26,9 @@ class Encoder(nn.Module):
 
         # Get character mask
         if self.training:
-            c_mask = pos.ne(0).type(t.float)
-            mask = pos.eq(0).unsqueeze(1).repeat(1, x.size(1), 1)
-
+            c_mask = pos.ne(0).type(t.float) # ne(num) 判断调用对象是否不等于num。返回self！=num，即mask。
+            mask = pos.eq(0).unsqueeze(1).repeat(1, x.size(1), 1) # ne(num) 判断调用对象是否等于num。返回self==num
+            # repeat用法类似numpy.title（）。
         else:
             c_mask, mask = None, None
 
@@ -36,7 +37,7 @@ class Encoder(nn.Module):
 
         # Get positional embedding, apply alpha and add
         pos = self.pos_emb(pos)
-        x = pos * self.alpha + x
+        x = pos * self.alpha + x # 此处做了隐式的brocast_multipy
 
         # Positional dropout
         x = self.pos_dropout(x)
@@ -61,7 +62,7 @@ class MelDecoder(nn.Module):
         """
         super(MelDecoder, self).__init__()
         self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(1024, num_hidden, padding_idx=0),
-                                                    freeze=True)
+                                                    freeze=True) # pos embed 的输入是pos_mel
         self.pos_dropout = nn.Dropout(p=0.1)
         self.alpha = nn.Parameter(t.ones(1))
         self.decoder_prenet = Prenet(hp.num_mels, num_hidden * 2, num_hidden, p=0.2)
@@ -78,7 +79,7 @@ class MelDecoder(nn.Module):
     def forward(self, memory, decoder_input, c_mask, pos):
         batch_size = memory.size(0)
         decoder_len = decoder_input.size(1)
-
+        # memory, mel_input, c_mask, pos = pos_mel
         # get decoder mask with triangular matrix
         if self.training:
             m_mask = pos.ne(0).type(t.float)
@@ -87,7 +88,7 @@ class MelDecoder(nn.Module):
                 mask = mask + t.triu(t.ones(decoder_len, decoder_len).cuda(), diagonal=1).repeat(batch_size, 1, 1).byte()
             else:
                 mask = mask + t.triu(t.ones(decoder_len, decoder_len), diagonal=1).repeat(batch_size, 1, 1).byte()
-            mask = mask.gt(0)
+            mask = mask.gt(0) # A.gt(num) A中元素大于num的为1， 小于的为0
             zero_mask = c_mask.eq(0).unsqueeze(-1).repeat(1, 1, decoder_len)
             zero_mask = zero_mask.transpose(1, 2)
         else:

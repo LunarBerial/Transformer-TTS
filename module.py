@@ -264,11 +264,11 @@ class Attention(nn.Module):
             mask = mask.repeat(self.h, 1, 1)
 
         # Make multihead
-        key = self.key(memory).view(batch_size, seq_k, self.h, self.num_hidden_per_attn)
+        key = self.key(memory).view(batch_size, seq_k, self.h, self.num_hidden_per_attn) # 经过全连接后resize
         value = self.value(memory).view(batch_size, seq_k, self.h, self.num_hidden_per_attn)
         query = self.query(decoder_input).view(batch_size, seq_q, self.h, self.num_hidden_per_attn)
 
-        key = key.permute(2, 0, 1, 3).contiguous().view(-1, seq_k, self.num_hidden_per_attn)
+        key = key.permute(2, 0, 1, 3).contiguous().view(-1, seq_k, self.num_hidden_per_attn) # permute等于mxnet里的swapaxes维度转换。
         value = value.permute(2, 0, 1, 3).contiguous().view(-1, seq_k, self.num_hidden_per_attn)
         query = query.permute(2, 0, 1, 3).contiguous().view(-1, seq_q, self.num_hidden_per_attn)
 
