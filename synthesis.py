@@ -38,7 +38,7 @@ def synthesis(text, args):
     m_post.train(False)
     
     pbar = tqdm(range(args.max_len))
-    with t.no_grad():
+    with t.no_grad(): # 此处可以看出，在训练时，因为有监督，可以直接生成结果。生成时，不可能预先将结果（mel_input）一次性输入网络，需要一帧一帧地生成。
         for i in pbar:
             pos_mel = t.arange(1,mel_input.size(1)+1).unsqueeze(0).cuda()
             mel_pred, postnet_pred, attn, stop_token, _, attn_dec = m.forward(text, mel_input, pos_text, pos_mel)
